@@ -33,7 +33,8 @@ Before running, open `main.py` and edit the settings at the top of the file to c
 
 ```python
 # --- SETTINGS TO CHANGE ---
-search_players = {"LeBron James"}
-actions_to_find = { ... }
-num_games_to_find = 2
-num_events_to_find = 5
+# search_players: A list of player names. Ex: {"LeBron James", "Stephen Curry"}.
+# NOTE: This is very case sensitive. For example, the script will not recognize "Lebron James", but will recognize "LeBron James"
+# actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
+# num_games_to_find: Max number of recent games to search per player.
+# num_events_to_find: Max number of clips to find per game.
