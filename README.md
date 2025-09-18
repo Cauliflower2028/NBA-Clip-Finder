@@ -1,8 +1,27 @@
-# NBA Clip Finder
+# NBA Clip Finder & Processor
 
-This Python script automatically finds and generates direct download links for video clips of specific NBA players and plays.
+This project provides a workflow to find, download, trim, and log specific video clips of NBA players based on play-by-play data. The process is broken down into three main steps: Gathering, Logging, and Processing.
 
-## Setup and Installation
+## Prerequisites
+
+Before you begin, ensure you have the following command-line tools installed. The recommended installation method for macOS is [Homebrew](https://brew.sh/).
+
+* **Python 3.10+**
+* **Git**
+* **yt-dlp:** For downloading video clips.
+    ```bash
+    brew install yt-dlp
+    ```
+* **mpv:** A lightweight video player for the manual logging step.
+    ```bash
+    brew install mpv
+    ```
+* **ffmpeg:** The tool that powers the final video trimming.
+    ```bash
+    brew install ffmpeg
+    ```
+
+## Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -12,29 +31,60 @@ This Python script automatically finds and generates direct download links for v
 
 2.  **Create and activate a virtual environment:**
     ```bash
-    # Create the venv
-    python -m venv venv
-
-    # Activate on Windows
-    .\venv\Scripts\activate
-
-    # Activate on Mac/Linux
+    python3 -m venv venv
     source venv/bin/activate
     ```
+    *Note: On Windows, the activation command is `.\venv\Scripts\activate`*
 
-3.  **Install the required packages:**
+3.  **Install the required Python packages:**
     ```bash
     pip install -r requirements.txt
     ```
 
-## Configuration
+## Workflow & Usage
 
-Before running, open `main.py` and edit the settings at the top of the file to choose your players, actions, and limits.
+The process is divided into three steps. You must run them in order.
 
-```python
-# --- SETTINGS TO CHANGE ---
-# search_players: A list of player names. Ex: {"LeBron James", "Stephen Curry"}.
-# NOTE: This is very case sensitive. For example, the script will not recognize "Lebron James", but will recognize "LeBron James"
-# actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
-# num_games_to_find: Max number of recent games to search per player.
-# num_events_to_find: Max number of clips to find per game.
+### Step 1: Gather Raw Clips (`gatherer.py`)
+
+This script finds all potential clips based on your settings and downloads the raw, untrimmed videos into the `Raw_Clips` folder.
+
+1.  **Configure:** Open `gatherer.py` and edit the settings at the top (e.g., `search_players`, `clips_per_category`).
+2.  **Run:** From the main `NBA-Clip-Finder` directory, run the script:
+    ```bash
+    python gatherer.py
+    ```
+
+### Step 2: Log Trim Times (Manual `mpv` Workflow)
+
+This is the high-speed manual step where you define the start and end times for each clip. The necessary `trim-helper.lua` script is already included in the `Raw_Clips` folder.
+
+1.  **Navigate:** Open your terminal and cd into the `Raw_Clips` folder:
+    ```bash
+    cd Raw_Clips
+    ```
+2.  **Prepare & Run:** Generate the playlist and run the logger with these two commands:
+    ```bash
+    ls -1 *.mp4 > playlist.txt
+    mpv --playlist=playlist.txt --script=./trim-helper.lua --keep-open=always
+    ```
+3.  **Use Hotkeys:**
+    * **`s`**: Set start time.
+    * **`e`**: Set end time.
+    * **`w`**: Write/update the log for the current clip.
+    * **`q`**: Quit the current video and advance to the next.
+
+### Step 3: Process Final Clips (`processor.py`)
+
+This final script automates the trimming, renaming, and report generation based on your `cut_list.txt`.
+
+1.  **Navigate:** Make sure you are in the **main `NBA-Clip-Finder` directory** (not `Raw_Clips`).
+    ```bash
+    cd ..
+    ```
+2.  **Configure:** Open `processor.py` and edit the `responsible_person` variable.
+3.  **Run:**
+    ```bash
+    python processor.py
+    ```
+4.  **Output:** The script will create a `Final_Clips/` folder with your perfectly trimmed and named videos, and a `Final_Clips_Report.csv` file ready for Google Sheets.
