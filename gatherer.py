@@ -1,4 +1,6 @@
 import time
+import os
+import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
 from nba_api.stats.static import players
@@ -24,12 +26,11 @@ class EventMsgType(Enum):
 # search_players: A list of player names. Ex: {"LeBron James", "Stephen Curry"}.
 # NOTE: This is very case sensitive. For example, the script will not recognize "Lebron James", but will recognize "LeBron James"
 # actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
-# num_games_to_find: Max number of recent games to search per player.
+# num_games_to_find: Max number of recent new games to search per player.
 # num_events_to_find: Max number of clips to find per game.
 search_players = {"LeBron James", "Lonzo Ball"}
 actions_to_find = {
     EventMsgType.FIELD_GOAL_MADE.value,
-    EventMsgType.FIELD_GOAL_MISSED.value,
     EventMsgType.FREE_THROWfree_throw_attempt.value,
 }
 num_games_to_find = 1
@@ -59,12 +60,35 @@ def get_mp4_url(game_id, event_id):
         return video_urls[0]['lurl'] # 'lurl' is the key for the high-quality MP4
     return None
 
+def get_shot_category(row):
+    description = row['HOMEDESCRIPTION']
+    if pd.isna(description):
+        return None
+    event_type = row['EVENTMSGTYPE']
+    if event_type == EventMsgType.FREE_THROWfree_throw_attempt.value:
+        return "freethrow"
+    if '3PT' in description:
+        return "3points shooting"
+    else:
+        return "2points shooting"
+    
+def get_processed_game_ids(filename="processed_games.log"):
+    if not os.path.exists(filename):
+        return set()
+    with open(filename, 'r') as f:
+        return {line.strip() for line in f if line.strip()}
+
+print("--- Gatherer Script Started ---")
+processed_games = get_processed_game_ids()
+print(f"Found {len(processed_games)} previously processed games to skip.")
+
 nba_players = players.get_players()
 target_players = [player for player in nba_players if player["full_name"] in search_players]
 
 print(f"Found {len(target_players)} out of {len(search_players)} players.")
 
 all_video_urls = []
+url_mappings = []
 for player in target_players:
     player_id = player['id']
     player_name = player['full_name']
@@ -75,7 +99,14 @@ for player in target_players:
 
     finder = leaguegamefinder.LeagueGameFinder(player_id_nullable=player_id)
     games_df = finder.get_data_frames()[0]
-    game_ids = games_df['GAME_ID'].unique().tolist()
+
+    new_games_df = games_df[~games_df['GAME_ID'].isin(processed_games)]
+    if new_games_df.empty:
+        print(f"No new games found for {player_name}.")
+        continue
+
+    game_ids = new_games_df['GAME_ID'].unique().tolist()
+    print(f"Found {len(game_ids)} new games to search.")
 
     for i, game_id in enumerate(game_ids):
         if i >= num_games_to_find:
@@ -89,27 +120,39 @@ for player in target_players:
         player_actions = pbp_df[
             (pbp_df['PLAYER1_ID'] == player_id) &
             (pbp_df['EVENTMSGTYPE'].isin(actions_to_find))
-        ]
+        ].copy()
 
         if player_actions.empty:
             continue
 
         print(f"    -> Found {len(player_actions)} made shots/FTs. Grabbing links...")
+        player_actions['CATEGORY'] = player_actions.apply(get_shot_category, axis=1)
         eventsFound = 0
         for index, row in player_actions.iterrows():
             event_id = row['EVENTNUM']
+            category = row['CATEGORY']
             mp4_url = get_mp4_url(game_id, event_id)
             if mp4_url:
                 all_video_urls.append(mp4_url)
+                temp_filename = f"{game_id}_{event_id}.mp4"
+                url_mappings.append({
+                    "player_name": player_name,
+                    "category": category,
+                    "temp_filename": temp_filename,
+                    "original_url": mp4_url
+                })  
                 print(f"        -> Success! Got MP4 link for Event {event_id}")
                 eventsFound += 1
             if eventsFound >= num_events_to_find:
                 break
 
-output_filename = "links_to_download.txt"
+output_filename = "potential_links.txt"
 with open(output_filename, "w") as f:
     for url in all_video_urls:
         f.write(url + "\n")
+
+mappings_df = pd.DataFrame(url_mappings)
+mappings_df.to_csv('url_mapping.csv', index=False)
 
 print(f"Successfully collected {len(all_video_urls)} direct MP4 links.")
 print(f"All links have been saved to '{output_filename}'.")
