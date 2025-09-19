@@ -28,14 +28,14 @@ class EventMsgType(Enum):
 # search_players: A list of player names. Ex: {"LeBron James", "Stephen Curry"}.
 # NOTE: This is very case sensitive. For example, the script will not recognize "Lebron James", but will recognize "LeBron James"
 # actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
-# num_games_to_find: Max number of recent games to search per player.
-# num_events_to_find: Max number of clips to find per game.
+# clips_per_category: Number of types of clips to find per player (3pts, 2pts, Freethrow)
 search_players = {"Lonzo Ball"}
 actions_to_find = {
     EventMsgType.FIELD_GOAL_MADE.value,
     EventMsgType.FREE_THROWfree_throw_attempt.value,
 }
 clips_per_category = 1
+# Don't change this
 output_folder_raw = "Raw_Clips"
 
 def get_mp4_url(game_id, event_id):
