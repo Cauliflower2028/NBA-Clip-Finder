@@ -20,8 +20,13 @@ def update_processed_log(game_ids_to_add):
             f.write(f"{gid}\n")
 
 # --- Main Logic ---
-print("--- Simple Downloader Started ---")
+print("--- downloader.py started ---")
 master_df = pd.read_csv(mapping_file)
+
+all_game_ids_in_mapping = set(master_df['temp_filename'].str.split('_').str[0])
+update_processed_log(all_game_ids_in_mapping)
+print(f"Updated '{log_file}' with all {len(all_game_ids_in_mapping)} unique game IDs from '{mapping_file}'.")
+
 with open(links_to_download_file, 'r') as f:
     chosen_urls = {line.strip() for line in f if line.strip()}
 
@@ -35,15 +40,10 @@ for _, row in to_download_df.iterrows():
     original_url = row['original_url']
     output_path = os.path.join(output_folder_raw, temp_filename)
     
-    game_id = temp_filename.split('_')[0]
-    game_ids_to_log.add(game_id)
-    
     if os.path.exists(output_path):
         print(f"  -> Skipping: {temp_filename} (already exists)")
     else:
         print(f"  -> Downloading: {temp_filename}")
         subprocess.run(['yt-dlp', '-q', '-o', output_path, original_url])
 
-update_processed_log(game_ids_to_log)
-print(f"\nUpdated '{log_file}' with {len(game_ids_to_log)} game IDs.")
 print("--- Downloader Script Complete ---")
