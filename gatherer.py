@@ -28,13 +28,13 @@ class EventMsgType(Enum):
 # actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
 # num_games_to_find: Max number of recent new games to search per player.
 # num_events_to_find: Max number of clips to find per game.
-search_players = {"LeBron James", "Lonzo Ball"}
+search_players = {"Cade Cunningham", "Malik Beasley"}
 actions_to_find = {
     EventMsgType.FIELD_GOAL_MADE.value,
     EventMsgType.FREE_THROWfree_throw_attempt.value,
 }
-num_games_to_find = 1
-num_events_to_find = 1
+num_games_to_find = 3
+num_events_to_find = 3
 
 def get_mp4_url(game_id, event_id):
     headers = {
