@@ -1,9 +1,5 @@
 import time
 import requests
-import subprocess
-import os
-import pandas as pd
-import sys
 import xml.etree.ElementTree as ET
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import playbyplayv2, leaguegamefinder, videoevents
@@ -28,15 +24,16 @@ class EventMsgType(Enum):
 # search_players: A list of player names. Ex: {"LeBron James", "Stephen Curry"}.
 # NOTE: This is very case sensitive. For example, the script will not recognize "Lebron James", but will recognize "LeBron James"
 # actions_to_find: The types of plays to find. See the EventMsgType class above for all options.
-# clips_per_category: Number of types of clips to find per player (3pts, 2pts, Freethrow)
-search_players = {"Lonzo Ball"}
+# num_games_to_find: Max number of recent games to search per player.
+# num_events_to_find: Max number of clips to find per game.
+search_players = {"LeBron James", "Lonzo Ball"}
 actions_to_find = {
     EventMsgType.FIELD_GOAL_MADE.value,
+    EventMsgType.FIELD_GOAL_MISSED.value,
     EventMsgType.FREE_THROWfree_throw_attempt.value,
 }
-clips_per_category = 1
-# Don't change this
-output_folder_raw = "Raw_Clips"
+num_games_to_find = 1
+num_events_to_find = 1
 
 def get_mp4_url(game_id, event_id):
     headers = {
@@ -62,39 +59,16 @@ def get_mp4_url(game_id, event_id):
         return video_urls[0]['lurl'] # 'lurl' is the key for the high-quality MP4
     return None
 
-def get_shot_category(row):
-    description = row['HOMEDESCRIPTION']
-    if pd.isna(description):
-        return None
-    event_type = row['EVENTMSGTYPE']
-    if event_type == EventMsgType.FREE_THROWfree_throw_attempt.value:
-        return "freethrow"
-    if '3PT' in description:
-        return "3points shooting"
-    else:
-        return "2points shooting"
-
 nba_players = players.get_players()
 target_players = [player for player in nba_players if player["full_name"] in search_players]
 
 print(f"Found {len(target_players)} out of {len(search_players)} players.")
 
-url_mappings = []
-
-if not os.path.exists(output_folder_raw):
-    print(f"Raw_Clips folder not detected. Please create a Raw_Clips folder containing the appropriate lua and txt files.")
-    sys.exit(1)
-
+all_video_urls = []
 for player in target_players:
     player_id = player['id']
     player_name = player['full_name']
-    print(f"\n--- Finding clips for {player_name} ---")
-
-    clip_tracker = {
-        "3points shooting": clips_per_category,
-        "2points shooting": clips_per_category,
-        "freethrow": clips_per_category
-    }
+    print(f"\n--- Processing games for {player_name} ---")
 
     # Don't overwhelm the NBA's servers
     time.sleep(0.6)
@@ -104,11 +78,8 @@ for player in target_players:
     game_ids = games_df['GAME_ID'].unique().tolist()
 
     for i, game_id in enumerate(game_ids):
-        if all(value == 0 for value in clip_tracker.values()):
-            print(f"    -> All clips found for {player_name} met. Moving to next player.")
+        if i >= num_games_to_find:
             break
-
-        print(f"  -> Processing Game {i + 1} for {player_name}")
 
         # Don't overwhelm the NBA's servers
         time.sleep(0.6)
@@ -118,36 +89,27 @@ for player in target_players:
         player_actions = pbp_df[
             (pbp_df['PLAYER1_ID'] == player_id) &
             (pbp_df['EVENTMSGTYPE'].isin(actions_to_find))
-        ].copy()
+        ]
 
         if player_actions.empty:
             continue
 
         print(f"    -> Found {len(player_actions)} made shots/FTs. Grabbing links...")
-        player_actions['CATEGORY'] = player_actions.apply(get_shot_category, axis=1)
         eventsFound = 0
         for index, row in player_actions.iterrows():
-            category = row['CATEGORY']
-            if category in clip_tracker and clip_tracker[category] > 0:
-                event_id = row['EVENTNUM']
-                mp4_url = get_mp4_url(game_id, event_id)
-                if mp4_url:
-                    safe_player_name = player_name.replace(" ", "_")
-                    temp_filename = f"{safe_player_name}--{game_id}--{event_id}--{category}.mp4"
-                    output_path = os.path.join(output_folder_raw, temp_filename)
-                    print(f"    -> Downloading: {temp_filename}")
-                    subprocess.run(['yt-dlp', '-q', '-o', output_path, mp4_url])
-                    url_mappings.append({
-                        "player_name": player_name,
-                        "category": category,
-                        "temp_filename": temp_filename,
-                        "original_url": mp4_url
-                    })
-                    clip_tracker[category] -= 1
-                    print(f"    -> Success! Found a clip for '{category}'")
+            event_id = row['EVENTNUM']
+            mp4_url = get_mp4_url(game_id, event_id)
+            if mp4_url:
+                all_video_urls.append(mp4_url)
+                print(f"        -> Success! Got MP4 link for Event {event_id}")
+                eventsFound += 1
+            if eventsFound >= num_events_to_find:
+                break
 
-mappings_df = pd.DataFrame(url_mappings)
-mappings_df.to_csv('url_mapping.csv', index=False)
+output_filename = "links_to_download.txt"
+with open(output_filename, "w") as f:
+    for url in all_video_urls:
+        f.write(url + "\n")
 
-print(f"All raw clips downloaded to '{output_folder_raw}' folder.")
-print("URL mapping saved to 'url_mapping.csv', ready for the trimming step.")
+print(f"Successfully collected {len(all_video_urls)} direct MP4 links.")
+print(f"All links have been saved to '{output_filename}'.")
