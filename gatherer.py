@@ -169,6 +169,4 @@ for player, urls in all_video_urls.items():
 
 mappings_df = pd.DataFrame(url_mappings)
 mappings_df.to_csv('url_mapping.csv', index=False)
-
-print(f"Successfully collected {len(all_video_urls)} direct MP4 links.")
 print(f"All links have been saved .")
