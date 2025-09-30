@@ -32,7 +32,7 @@ class EventMsgType(Enum):
 search_players = {"Cade Cunningham"}
 actions_to_find = {
     EventMsgType.FIELD_GOAL_MADE.value,
-    EventMsgType.FREE_THROWfree_throw_attempt
+    EventMsgType.FREE_THROWfree_throw_attempt.value
 }
 num_clips_to_find = 10
 
@@ -140,7 +140,7 @@ for player in target_players:
         for index, row in player_actions.iterrows():
             event_id = row['EVENTNUM']
             category = row['CATEGORY']
-            time.sleep(0.6 + random.uniform(0, 0.3))
+            time.sleep(random.uniform(0, 0.3))
             mp4_url = get_mp4_url(game_id, event_id)
             if mp4_url:
                 all_video_urls[player_name].append(mp4_url)
