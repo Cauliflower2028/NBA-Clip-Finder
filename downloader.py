@@ -33,7 +33,6 @@ with open(links_to_download_file, 'r') as f:
 # Filter the master list to get only the rows for the URLs you have chosen
 to_download_df = master_df[master_df['original_url'].isin(chosen_urls)]
 
-game_ids_to_log = set()
 print(f"Processing {len(to_download_df)} chosen clips...")
 for _, row in to_download_df.iterrows():
     temp_filename = row['temp_filename']
