@@ -3,10 +3,10 @@ import os
 import pandas as pd
 from datetime import datetime
 
-# --- Configuration ---
+# Import all settings from main.py
+from main import output_folder_final, responsible_person
+
 input_folder_raw = "Raw_Clips"
-output_folder_final = "Final_Clips"
-responsible_person = "Colin Lee"
 
 def get_duration(start_str, end_str):
     time_format = '%H:%M:%S.%f'
@@ -31,6 +31,7 @@ report_data = []
 
 print(f"Processing {len(merged_df)} logged clips...")
 
+
 for _, row in merged_df.iterrows():
     player_name = row['player_name']
     category = row['category']
@@ -38,14 +39,23 @@ for _, row in merged_df.iterrows():
     start_time_str = row['start_time']
     end_time_str = row['end_time']
     original_url = row['original_url']
-    
-    if player_name not in category_counters: category_counters[player_name] = {}
-    if category not in category_counters[player_name]: category_counters[player_name][category] = 0
-    category_counters[player_name][category] += 1
-    number = category_counters[player_name][category]
+
+    if player_name not in category_counters:
+        category_counters[player_name] = {}
+    # Normalize category for filename
+    if category == "freethrow" or category == "FREE_THROW":
+        category_for_name = "freethrow"
+    elif category == "3points shooting":
+        category_for_name = "3points shooting"
+    else:
+        category_for_name = category.replace(" ", "_").lower()
+    if category_for_name not in category_counters[player_name]:
+        category_counters[player_name][category_for_name] = 0
+    category_counters[player_name][category_for_name] += 1
+    number = category_counters[player_name][category_for_name]
     safe_player_name = player_name.replace(" ", "_")
-    final_clip_name = f"{safe_player_name}_{category}_{number}.mp4"
-    
+    final_clip_name = f"{safe_player_name}_{category_for_name}_{number:03d}.mp4"
+
     final_output_path = os.path.join(output_folder_final, final_clip_name)
     raw_input_path = os.path.join(input_folder_raw, temp_filename)
 

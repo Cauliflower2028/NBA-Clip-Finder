@@ -20,7 +20,7 @@ class EventMsgType(Enum):
 
 search_players = {"Stephen Curry"}  # Set of player names to search for
 actions_to_find = {
-	EventMsgType.FIELD_GOAL_MADE.value,
+	# EventMsgType.FIELD_GOAL_MADE.value,
 	EventMsgType.FREE_THROW.value
 }  # Set of action types to find
 
@@ -29,10 +29,9 @@ num_clips_to_find = 3 # Number of clips to find per player
 start_season = "2018-19"    # Earliest season to include
 end_season   = "2022-23"    # Latest season to include
 
-responsible_person = ""  # Person responsible for final clips
+responsible_person = "Enter_Name_Here"  # Person responsible for final clips
 
-input_folder_raw = "Raw_Clips"    # Folder for raw clips
-output_folder_final = "Final_Clips"  # Folder for final clips
+output_folder_final = "freethrow_trimmed"  # Folder for final clips
 
 import subprocess
 
