@@ -1,12 +1,10 @@
+
 import subprocess
 import os
 import pandas as pd
 from datetime import datetime
-
-# --- Configuration ---
-input_folder_raw = "Raw_Clips"
-output_folder_final = "Final_Clips"
-responsible_person = "Colin Lee"
+# Import all settings from main.py
+from main import input_folder_raw, output_folder_final, responsible_person
 
 def get_duration(start_str, end_str):
     time_format = '%H:%M:%S.%f'
