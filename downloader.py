@@ -45,4 +45,25 @@ for _, row in to_download_df.iterrows():
         print(f"  -> Downloading: {temp_filename}")
         subprocess.run(['yt-dlp', '-q', '-o', output_path, original_url])
 
+
+
 print("--- Downloader Script Complete ---")
+
+# Prompt to run Lua trimming workflow
+answer = input("Run trimming workflow with mpv and trim-helper.lua now? (y/n): ").strip().lower()
+if answer == "y":
+    import os
+    import subprocess
+    raw_clips_dir = "Raw_Clips"
+    playlist_path = os.path.join(raw_clips_dir, "playlist.txt")
+    mp4_files = [f for f in os.listdir(raw_clips_dir) if f.endswith(".mp4")]
+    with open(playlist_path, "w") as f:
+        for mp4 in mp4_files:
+            f.write(mp4 + "\n")
+    print("Launching mpv for trimming. Please edit clips as needed, then close mpv when done.")
+    subprocess.run(["mpv", "--playlist=playlist.txt", "--script=./trim-helper.lua", "--keep-open=always"], cwd=raw_clips_dir)
+
+# Prompt to run processor.py
+answer2 = input("Run processor.py to finalize clips now? (y/n): ").strip().lower()
+if answer2 == "y":
+    subprocess.run(["python3", "processor.py"])
