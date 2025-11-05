@@ -24,7 +24,7 @@ actions_to_find = {
 	EventMsgType.FREE_THROW.value
 }  # Set of action types to find
 
-num_clips_to_find = 3 # Number of clips to find per player
+num_clips_to_find = 10 # Number of clips to find per player
 
 start_season = "2018-19"    # Earliest season to include
 end_season   = "2022-23"    # Latest season to include

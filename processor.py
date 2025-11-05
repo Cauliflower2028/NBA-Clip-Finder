@@ -15,8 +15,6 @@ def get_duration(start_str, end_str):
     return (end_time - start_time).total_seconds()
 
 print("--- Processor Script Started ---")
-if not os.path.exists(output_folder_final):
-    os.makedirs(output_folder_final)
 
 cut_list_file = os.path.join(input_folder_raw, 'cut_list.txt')
 master_list_file = 'url_mapping.csv'
@@ -30,6 +28,7 @@ category_counters = {}
 report_data = []
 
 print(f"Processing {len(merged_df)} logged clips...")
+
 
 
 for _, row in merged_df.iterrows():
@@ -56,11 +55,15 @@ for _, row in merged_df.iterrows():
     safe_player_name = player_name.replace(" ", "_")
     final_clip_name = f"{safe_player_name}_{category_for_name}_{number:03d}.mp4"
 
-    final_output_path = os.path.join(output_folder_final, final_clip_name)
+    # Create player subfolder, then category subfolder inside output_folder_final
+    player_folder = os.path.join(safe_player_name, output_folder_final)
+    if not os.path.exists(player_folder):
+        os.makedirs(player_folder)
+    final_output_path = os.path.join(player_folder, final_clip_name)
     raw_input_path = os.path.join(input_folder_raw, temp_filename)
 
     duration_seconds = get_duration(start_time_str, end_time_str)
-    print(f"  -> Trimming {temp_filename} from {start_time_str} for {duration_seconds:.2f}s -> {final_clip_name}")
+    print(f"  -> Trimming {temp_filename} from {start_time_str} for {duration_seconds:.2f}s -> {final_output_path}")
 
     command = [
         'ffmpeg',
@@ -77,7 +80,8 @@ for _, row in merged_df.iterrows():
         "Player Name": player_name,
         "Video URL": original_url,
         "Clip Name": final_clip_name,
-        "Responsible Person": responsible_person
+        "Responsible Person": responsible_person,
+        "Player Folder": player_folder
     })
 
 print("\nGenerating final CSV report...")
